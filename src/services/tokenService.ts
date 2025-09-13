@@ -1,13 +1,20 @@
-// Token service for handling JWT
+
+const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+
 export const tokenService = {
   getToken: () => {
-    // TODO: Retrieve token from memory or cookie
-    return null;
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
   },
-  setToken: (token: string) => {
-    // TODO: Store token in memory or cookie
+  setToken: (accessToken: string, refreshToken: string) => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  },
+  getRefreshToken: () => {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
   },
   clearToken: () => {
-    // TODO: Remove token
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 };

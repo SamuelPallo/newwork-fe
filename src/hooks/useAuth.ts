@@ -1,10 +1,38 @@
-// useAuth hook for authentication and role-aware UI
+
+import { useEffect, useState } from 'react';
+import { tokenService } from '../services/tokenService';
+
+function parseJwt(token: string) {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
 export const useAuth = () => {
-  // TODO: Implement authentication logic
+  const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = tokenService.getToken();
+    setToken(t);
+    if (t) {
+      const decoded = parseJwt(t);
+      setUser(decoded);
+    } else {
+      setUser(null);
+    }
+  }, []);
+
+  // Example: roles in JWT: { role: 'manager' | 'user' | 'admin', sub: userId }
+  const isManager = user?.role === 'manager' || user?.role === 'admin';
+  const isOwner = (profileId?: string) => profileId && user?.sub === profileId;
+
   return {
-    user: null,
-    token: null,
-    isManager: false,
-    isOwner: false,
+    user,
+    token,
+    isManager,
+    isOwner,
   };
 };

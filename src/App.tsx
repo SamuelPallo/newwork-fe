@@ -7,10 +7,12 @@ import { FeedbackList } from './components/FeedbackList';
 import { AbsenceForm } from './components/AbsenceForm';
 import { AbsenceList } from './components/AbsenceList';
 import { TeamDirectory } from './components/TeamDirectory';
+import { LoginPage } from './pages/LoginPage';
 
 const App: React.FC = () => {
   return (
     <Routes>
+      <Route path="/" element={<LoginPage />} />
       <Route path="/me" element={<ProfileCard />} />
       <Route path="/edit" element={<ProfileEditor />} />
       <Route path="/feedback" element={<FeedbackComposer />} />

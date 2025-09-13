@@ -51,7 +51,7 @@ src/
    npm run dev
    ```
 3. **Open in browser:**
-   Visit [http://localhost:5173](http://localhost:5173)
+   Visit [http://localhost:3000](http://localhost:3000)
 
 ### Recommended VS Code Extensions
 - Tailwind CSS IntelliSense

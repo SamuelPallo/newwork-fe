@@ -1,9 +1,24 @@
-// useUser hook for fetching user profile
+
+import { useQuery } from '@tanstack/react-query';
+import { tokenService } from '../services/tokenService';
+
+async function fetchProfile() {
+  const token = tokenService.getToken();
+  const res = await fetch('/api/v1/users/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await res.json().catch(() => ({ message: 'Failed to fetch profile' }));
+  return res.json();
+}
+
 export const useUser = () => {
-  // TODO: Implement user profile fetching logic
+  const { data, isLoading, error } = useQuery(['me'], fetchProfile, {
+    retry: false,
+    enabled: !!tokenService.getToken(),
+  });
   return {
-    profile: null,
-    loading: false,
-    error: null,
+    profile: data,
+    loading: isLoading,
+    error,
   };
 };
