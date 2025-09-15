@@ -1,10 +1,63 @@
-import React from 'react';
+
+import { useForm } from 'react-hook-form';
+import { Button, FormControl, FormLabel, Input, Select, Textarea, useToast } from '@chakra-ui/react';
+import { useAbsence } from '../hooks/useAbsence';
+
+export type AbsenceFormValues = {
+  startDate: string;
+  endDate: string;
+  type: string;
+  reason: string;
+};
+
+const absenceTypes = [
+  { value: 'vacation', label: 'Vacation' },
+  { value: 'sick', label: 'Sick Leave' },
+  { value: 'personal', label: 'Personal Leave' },
+];
 
 export const AbsenceForm: React.FC = () => {
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<AbsenceFormValues>();
+  const toast = useToast();
+  const { createAbsence, loading } = useAbsence();
+
+  const onSubmit = (data: AbsenceFormValues) => {
+    createAbsence(data, {
+      onSuccess: () => {
+        toast({ title: 'Absence request submitted', status: 'success', duration: 3000 });
+        reset();
+      },
+      onError: (error: any) => {
+        let message = error?.message || error?.detail || 'Unknown error';
+        toast({ title: 'Error submitting request', description: message, status: 'error', duration: 4000 });
+      },
+    });
+  };
+
   return (
-    <div className="absence-form">
-      {/* TODO: Absence request form */}
-      Absence Form
-    </div>
+    <form onSubmit={handleSubmit(onSubmit)} aria-label="Absence Request Form" className="max-w-md mx-auto p-4 bg-white rounded shadow-md" tabIndex={0}>
+      <FormControl isRequired mb={3}>
+        <FormLabel htmlFor="type">Type</FormLabel>
+        <Select id="type" {...register('type', { required: true })} aria-required="true" aria-label="Absence Type">
+          <option value="">Select type</option>
+          {absenceTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        </Select>
+      </FormControl>
+      <FormControl isRequired mb={3}>
+        <FormLabel htmlFor="startDate">Start Date</FormLabel>
+        <Input id="startDate" type="date" {...register('startDate', { required: true })} aria-required="true" aria-label="Start Date" />
+      </FormControl>
+      <FormControl isRequired mb={3}>
+        <FormLabel htmlFor="endDate">End Date</FormLabel>
+        <Input id="endDate" type="date" {...register('endDate', { required: true })} aria-required="true" aria-label="End Date" />
+      </FormControl>
+      <FormControl mb={3}>
+        <FormLabel htmlFor="reason">Reason</FormLabel>
+        <Textarea id="reason" {...register('reason')} aria-label="Reason" />
+      </FormControl>
+      <Button type="submit" colorScheme="blue" isLoading={isSubmitting || loading} aria-label="Submit Absence Request" width="100%">
+        Submit Request
+      </Button>
+    </form>
   );
 };
