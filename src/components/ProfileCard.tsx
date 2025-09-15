@@ -34,6 +34,7 @@ const ProfileFields = ({ profile, editable, onFieldChange, saving }: any) => (
 export const ProfileCard: React.FC = () => {
   const { profile, loading, error } = useUser();
   const { user, isManager, isOwner } = useAuth();
+  console.log('ProfileCard:', { profile, loading, error, user });
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [localProfile, setLocalProfile] = useState<any>(null);
@@ -45,74 +46,80 @@ export const ProfileCard: React.FC = () => {
   // Only owner can edit their own profile
   const editable = profile && user && isOwner(profile.id);
 
-    // Modal state for confirmation
-    const { isOpen, onOpen, onClose } = useDisclosure();
-    const [pendingField, setPendingField] = useState<string | null>(null);
-    const [pendingValue, setPendingValue] = useState<any>(null);
+  // Modal state for confirmation
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [pendingField, setPendingField] = useState<string | null>(null);
+  const [pendingValue, setPendingValue] = useState<any>(null);
 
-    // Debounced save function
-    const saveField = useCallback(
-      debounce(async (field: string, value: any) => {
-        setSaving(true);
-        try {
-          await fetch(`/api/v1/users/${profile.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${user?.token}`,
-            },
-            body: JSON.stringify({ [field]: value }),
-          });
-          toast({ title: 'Profile updated', status: 'success', duration: 1500 });
-        } catch {
-          toast({ title: 'Failed to update', status: 'error', duration: 2000 });
-        }
+  // Debounced save function
+  const saveField = useCallback(
+    debounce(async (field: string, value: any) => {
+      setSaving(true);
+      try {
+        await fetch(`/api/v1/users/${profile.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user?.token}`,
+          },
+          body: JSON.stringify({ [field]: value }),
+        });
+        toast({ title: 'Profile updated', status: 'success', duration: 1500 });
+      } catch (err) {
+        toast({ title: 'Failed to update', status: 'error', duration: 2000 });
+      } finally {
         setSaving(false);
-      }, 800),
-      [profile, user, toast]
-    );
+      }
+    }, 500),
+    [profile, user, toast]
+  );
 
-    const handleFieldChange = (field: string, value: any) => {
-      setPendingField(field);
-      setPendingValue(value);
-      onOpen();
-    };
+  const handleFieldChange = (field: string, value: any) => {
+    setPendingField(field);
+    setPendingValue(value);
+    onOpen();
+  };
 
-    const confirmChange = () => {
-      setLocalProfile((prev: any) => ({ ...prev, [pendingField!]: pendingValue }));
-      saveField(pendingField!, pendingValue);
-      onClose();
-    };
+  const confirmChange = () => {
+    setLocalProfile((prev: any) => ({ ...prev, [pendingField!]: pendingValue }));
+    saveField(pendingField!, pendingValue);
+    onClose();
+  };
 
-  if (loading) return <Spinner size="xl" />;
-  if (error) return <Alert status="error"><AlertIcon />Failed to load profile</Alert>;
-  if (!profile) return <Text>No profile data.</Text>;
+  // Render logic for loading, error, or profile
+  if (loading) {
+    return <Box p={6} textAlign="center"><Spinner size="xl" /> <Text mt={2}>Loading profile...</Text></Box>;
+  }
+  if (error) {
+    return <Alert status="error"><AlertIcon />{error instanceof Error ? error.message : 'Failed to load profile.'}</Alert>;
+  }
+  if (!profile) {
+    return <Box p={6} textAlign="center"><Text>No profile data found.</Text></Box>;
+  }
 
-  // Role-aware: managers/owners see more fields, others see limited
+  // Role-aware: show sensitive fields only to self or higher role
+  const isSelf = user && profile && user.id === profile.id;
+  const canSeeSensitive = isSelf || (user && user.role && user.role !== 'USER');
+
   return (
     <Box className="profile-card" p={6} bg="white" rounded="md" shadow="md" maxW="md" mx="auto">
-      <ProfileFields
-        profile={localProfile || profile}
-        editable={editable}
-        onFieldChange={handleFieldChange}
-        saving={saving}
-      />
-      {/* Add more role-aware fields and actions as needed */}
-
-      {/* Confirmation Modal for profile changes */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Confirm Profile Change</ModalHeader>
-          <ModalBody>
-            Are you sure you want to update your profile field?
-          </ModalBody>
-          <ModalFooter>
-            <Button onClick={onClose} mr={3} aria-label="Cancel">Cancel</Button>
-            <Button colorScheme="blue" onClick={confirmChange} aria-label="Confirm Save">Save</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <Heading size="md" mb={2}>{profile.first_name} {profile.last_name}</Heading>
+      <Text mb={1}><b>Email:</b> {profile.email}</Text>
+      <Text mb={1}><b>Job Title:</b> {profile.jobTitle || profile.job_title}</Text>
+      <Text mb={1}><b>Department:</b> {profile.department}</Text>
+      <Text mb={1}><b>Manager:</b> {profile.manager?.firstName || profile.manager?.first_name || 'None'}</Text>
+      <Text mb={1}><b>Active:</b> {profile.isActive ? 'Yes' : 'No'}</Text>
+      <Text mb={1}><b>Hire Date:</b> {profile.hireDate || profile.hire_date}</Text>
+      <Text mb={1}><b>Role:</b> {profile.role}</Text>
+      {canSeeSensitive && (
+        <>
+          <Text mt={2} fontWeight="bold">Sensitive Data</Text>
+          <Text mb={1}><b>Phone:</b> {profile.sensitiveData?.phone || profile.sensitive_data?.phone || '-'}</Text>
+          <Text mb={1}><b>Address:</b> {profile.sensitiveData?.address || profile.sensitive_data?.address || '-'}</Text>
+          <Text mb={1}><b>Salary:</b> {profile.sensitiveData?.salary || profile.sensitive_data?.salary || '-'}</Text>
+        </>
+      )}
+      {/* Optionally show subordinates or other info here */}
     </Box>
   );
 };

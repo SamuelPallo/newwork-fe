@@ -53,6 +53,43 @@ src/
 3. **Open in browser:**
    Visit [http://localhost:3000](http://localhost:3000)
 
+## Running with Docker
+
+You can run the frontend in a Docker container (no Node/npm required on host):
+
+1. **Build the Docker image:**
+   ```powershell
+   docker build -t newwork-fe .
+   ```
+2. **Run the container:**
+   ```powershell
+   docker run -p 3000:3000 newwork-fe
+   ```
+3. **Open in browser:**
+   Visit [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Quick Start for Newcomers
+
+You can start the UI in two ways:
+
+### 1. With npm (local dev)
+```powershell
+npm install
+npm run dev
+```
+Then visit [http://localhost:3000](http://localhost:3000)
+
+### 2. With Docker (no local Node/npm needed)
+```powershell
+docker build -t newwork-fe .
+docker run -p 3000:3000 newwork-fe
+```
+Then visit [http://localhost:3000](http://localhost:3000)
+
+---
+
 ### Recommended VS Code Extensions
 - Tailwind CSS IntelliSense
 - Chakra UI VS Code

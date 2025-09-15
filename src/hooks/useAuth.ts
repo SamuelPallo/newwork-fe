@@ -15,14 +15,23 @@ export const useAuth = () => {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = tokenService.getToken();
-    setToken(t);
-    if (t) {
-      const decoded = parseJwt(t);
-      setUser(decoded);
-    } else {
-      setUser(null);
-    }
+    const updateAuth = () => {
+      const t = tokenService.getToken();
+      setToken(t);
+      if (t) {
+        const decoded = parseJwt(t);
+        setUser(decoded);
+      } else {
+        setUser(null);
+      }
+    };
+    updateAuth();
+    window.addEventListener('storage', updateAuth);
+    window.addEventListener('authChanged', updateAuth);
+    return () => {
+      window.removeEventListener('storage', updateAuth);
+      window.removeEventListener('authChanged', updateAuth);
+    };
   }, []);
 
   // Example: roles in JWT: { role: 'manager' | 'user' | 'admin', sub: userId }

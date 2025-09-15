@@ -3,7 +3,8 @@ import { Box, Button, Flex, Heading, Input, useToast } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../api';
-import { tokenService } from '../services/tokenService';
+import { useAuthStore } from '../hooks/useAuthStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LoginForm {
   email: string;
@@ -14,13 +15,24 @@ export const LoginPage: React.FC = () => {
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<LoginForm>();
   const toast = useToast();
   const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
+  const setToken = useAuthStore((state) => state.setToken);
 
+  React.useEffect(() => {
+    if (token) {
+      navigate('/me', { replace: true });
+    }
+  }, [token, navigate]);
+
+  const refreshAuth = useAuthStore((state) => state.refreshAuth);
+  const queryClient = useQueryClient();
   const onSubmit = async (data: LoginForm) => {
     try {
       const { accessToken, refreshToken } = await login({ email: data.email, password: data.password });
-      tokenService.setToken(accessToken, refreshToken);
-      // Optionally fetch user profile here or rely on /me page to do it
-      navigate('/me');
+      await setToken(accessToken);
+      refreshAuth();
+      await queryClient.refetchQueries({ queryKey: ['me'] });
+      navigate('/me', { replace: true });
     } catch (err: any) {
       toast({
         title: 'Login failed',
