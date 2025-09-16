@@ -34,7 +34,9 @@ const ProfileFields = ({ profile, editable, onFieldChange, saving }: any) => (
 export const ProfileCard: React.FC = () => {
   const { profile, loading, error } = useUser();
   const { user, isManager, isOwner } = useAuth();
-  console.log('ProfileCard:', { profile, loading, error, user });
+  // Debug log for profile data
+  // eslint-disable-next-line no-console
+  console.log('ProfileCard profile:', profile);
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [localProfile, setLocalProfile] = useState<any>(null);
@@ -93,8 +95,8 @@ export const ProfileCard: React.FC = () => {
   if (error) {
     return <Alert status="error"><AlertIcon />{error instanceof Error ? error.message : 'Failed to load profile.'}</Alert>;
   }
-  if (!profile) {
-    return <Box p={6} textAlign="center"><Text>No profile data found.</Text></Box>;
+  if (!profile || Object.keys(profile).length === 0) {
+    return <Box p={6} textAlign="center"><Text>No profile data found or profile is empty.</Text></Box>;
   }
 
   // Role-aware: show sensitive fields only to self or higher role

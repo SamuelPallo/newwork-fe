@@ -1,7 +1,8 @@
 
 import { useForm } from 'react-hook-form';
 import { Button, FormControl, FormLabel, Input, Select, Textarea, useToast } from '@chakra-ui/react';
-import { useAbsence } from '../hooks/useAbsence';
+import { useMutation } from '@tanstack/react-query';
+import { createAbsenceRequest } from '../api/absenceApi';
 
 export type AbsenceFormValues = {
   startDate: string;
@@ -17,21 +18,26 @@ const absenceTypes = [
 ];
 
 export const AbsenceForm: React.FC = () => {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<AbsenceFormValues>();
+  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm<AbsenceFormValues>();
   const toast = useToast();
-  const { createAbsence, loading } = useAbsence();
+  const mutation = useMutation({
+    mutationFn: createAbsenceRequest,
+    onSuccess: () => {
+      toast({ title: 'Absence request submitted', status: 'success', duration: 3000 });
+      reset();
+    },
+    onError: (error: any) => {
+      let message = error?.message || error?.detail || 'Unknown error';
+      toast({ title: 'Error submitting request', description: message, status: 'error', duration: 4000 });
+    },
+  });
+
+  // Date logic
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = watch('startDate') || today;
 
   const onSubmit = (data: AbsenceFormValues) => {
-    createAbsence(data, {
-      onSuccess: () => {
-        toast({ title: 'Absence request submitted', status: 'success', duration: 3000 });
-        reset();
-      },
-      onError: (error: any) => {
-        let message = error?.message || error?.detail || 'Unknown error';
-        toast({ title: 'Error submitting request', description: message, status: 'error', duration: 4000 });
-      },
-    });
+    mutation.mutate(data);
   };
 
   return (
@@ -45,17 +51,31 @@ export const AbsenceForm: React.FC = () => {
       </FormControl>
       <FormControl isRequired mb={3}>
         <FormLabel htmlFor="startDate">Start Date</FormLabel>
-        <Input id="startDate" type="date" {...register('startDate', { required: true })} aria-required="true" aria-label="Start Date" />
+        <Input
+          id="startDate"
+          type="date"
+          min={today}
+          {...register('startDate', { required: true })}
+          aria-required="true"
+          aria-label="Start Date"
+        />
       </FormControl>
       <FormControl isRequired mb={3}>
         <FormLabel htmlFor="endDate">End Date</FormLabel>
-        <Input id="endDate" type="date" {...register('endDate', { required: true })} aria-required="true" aria-label="End Date" />
+        <Input
+          id="endDate"
+          type="date"
+          min={startDate}
+          {...register('endDate', { required: true })}
+          aria-required="true"
+          aria-label="End Date"
+        />
       </FormControl>
       <FormControl mb={3}>
         <FormLabel htmlFor="reason">Reason</FormLabel>
         <Textarea id="reason" {...register('reason')} aria-label="Reason" />
       </FormControl>
-      <Button type="submit" colorScheme="blue" isLoading={isSubmitting || loading} aria-label="Submit Absence Request" width="100%">
+      <Button type="submit" colorScheme="blue" isLoading={isSubmitting || mutation.isLoading} aria-label="Submit Absence Request" width="100%">
         Submit Request
       </Button>
     </form>

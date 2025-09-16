@@ -1,43 +1,44 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAbsenceRequests, createAbsenceRequest, approveAbsenceRequest, rejectAbsenceRequest } from '../api/absenceApi';
+import { getAbsenceRequests, getUserAbsenceRequests, createAbsenceRequest, approveAbsenceRequest, rejectAbsenceRequest } from '../api/absenceApi';
 
-export const useAbsence = () => {
+export const useAbsence = (userId: string) => {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['absences'],
-    queryFn: getAbsenceRequests,
+  const { data, status, error } = useQuery({
+    queryKey: ['absences', userId],
+    queryFn: () => getUserAbsenceRequests(userId),
+    enabled: !!userId,
   });
 
   const createMutation = useMutation({
     mutationFn: createAbsenceRequest,
     onSuccess: () => {
-      queryClient.invalidateQueries(['absences']);
+      queryClient.invalidateQueries({ queryKey: ['absences', userId] });
     },
   });
 
   const approveMutation = useMutation({
     mutationFn: approveAbsenceRequest,
     onSuccess: () => {
-      queryClient.invalidateQueries(['absences']);
+      queryClient.invalidateQueries({ queryKey: ['absences', userId] });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: rejectAbsenceRequest,
     onSuccess: () => {
-      queryClient.invalidateQueries(['absences']);
+      queryClient.invalidateQueries({ queryKey: ['absences', userId] });
     },
   });
 
   return {
     absences: data || [],
-    loading: isLoading,
+    loading: status === 'loading',
     error,
     createAbsence: createMutation.mutate,
-    approving: approveMutation.isLoading,
+    approving: approveMutation.status === 'loading',
     approveAbsence: approveMutation.mutate,
-    rejecting: rejectMutation.isLoading,
+    rejecting: rejectMutation.status === 'loading',
     rejectAbsence: rejectMutation.mutate,
   };
 };

@@ -1,10 +1,14 @@
 
 import { useAbsence } from '../hooks/useAbsence';
+import { useAuth } from '../hooks/useAuth';
 import { Box, Spinner, Alert, AlertIcon, Table, Thead, Tbody, Tr, Th, Td, Badge } from '@chakra-ui/react';
 
 export const AbsenceList: React.FC = () => {
-  const { absences, loading, error } = useAbsence();
+  const { user } = useAuth();
+  const userId = user?.sub;
+  const { absences, loading, error } = useAbsence(userId);
 
+  if (!userId) return <Box>Not authenticated.</Box>;
   if (loading) return <Spinner label="Loading absences..." />;
   if (error) {
     let message = 'Failed to load absences';
@@ -13,7 +17,6 @@ export const AbsenceList: React.FC = () => {
     if (err?.detail) message = err.detail;
     return <Alert status="error"><AlertIcon />{message}</Alert>;
   }
-
   if (!absences || absences.length === 0) {
     return <Box>No absence requests found.</Box>;
   }

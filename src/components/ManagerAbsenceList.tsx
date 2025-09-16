@@ -1,47 +1,57 @@
 import React from 'react';
-import { useAbsence } from '../hooks/useAbsence';
+import { useQuery } from '@tanstack/react-query';
+import { getManagerPendingAbsences, approveAbsenceRequest, rejectAbsenceRequest } from '../api/absenceApi';
 import { Box, Spinner, Alert, AlertIcon, Table, Thead, Tbody, Tr, Th, Td, Badge, Button, useToast, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@chakra-ui/react';
 import { useAuth } from '../hooks/useAuth';
 
 export const ManagerAbsenceList: React.FC = () => {
-  const { absences, loading, error, approveAbsence, approving, rejectAbsence, rejecting } = useAbsence();
+  const { data: absences, status, error, refetch } = useQuery({
+    queryKey: ['manager-pending-absences'],
+    queryFn: getManagerPendingAbsences,
+  });
   const toast = useToast();
   const { isManager } = useAuth();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [pendingAction, setPendingAction] = React.useState<{ type: 'approve' | 'reject'; id: string | null }>({ type: 'approve', id: null });
+  const [approving, setApproving] = React.useState(false);
+  const [rejecting, setRejecting] = React.useState(false);
 
   const handleAction = (type: 'approve' | 'reject', id: string) => {
     setPendingAction({ type, id });
     onOpen();
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (pendingAction.type === 'approve' && pendingAction.id) {
-      approveAbsence(pendingAction.id, {
-        onSuccess: () => {
-          toast({ title: 'Absence approved', status: 'success', duration: 3000 });
-          onClose();
-        },
-        onError: (error: any) => {
-          let message = error?.message || error?.detail || 'Unknown error';
-          toast({ title: 'Error approving', description: message, status: 'error', duration: 4000 });
-        },
-      });
+      setApproving(true);
+      try {
+        await approveAbsenceRequest(pendingAction.id);
+        toast({ title: 'Absence approved', status: 'success', duration: 3000 });
+        refetch();
+        onClose();
+      } catch (error: any) {
+        let message = error?.message || error?.detail || 'Unknown error';
+        toast({ title: 'Error approving', description: message, status: 'error', duration: 4000 });
+      } finally {
+        setApproving(false);
+      }
     } else if (pendingAction.type === 'reject' && pendingAction.id) {
-      rejectAbsence(pendingAction.id, {
-        onSuccess: () => {
-          toast({ title: 'Absence rejected', status: 'success', duration: 3000 });
-          onClose();
-        },
-        onError: (error: any) => {
-          let message = error?.message || error?.detail || 'Unknown error';
-          toast({ title: 'Error rejecting', description: message, status: 'error', duration: 4000 });
-        },
-      });
+      setRejecting(true);
+      try {
+        await rejectAbsenceRequest(pendingAction.id);
+        toast({ title: 'Absence rejected', status: 'success', duration: 3000 });
+        refetch();
+        onClose();
+      } catch (error: any) {
+        let message = error?.message || error?.detail || 'Unknown error';
+        toast({ title: 'Error rejecting', description: message, status: 'error', duration: 4000 });
+      } finally {
+        setRejecting(false);
+      }
     }
   };
 
-  if (loading) return <Spinner label="Loading absences..." />;
+  if (status === 'loading') return <Spinner label="Loading absences..." />;
   if (error) {
     let message = 'Failed to load absences';
     const err = error as any;
@@ -51,7 +61,7 @@ export const ManagerAbsenceList: React.FC = () => {
   }
 
   if (!absences || absences.length === 0) {
-    return <Box>No absence requests found.</Box>;
+    return <Box>No pending absence requests found.</Box>;
   }
 
   return (
@@ -69,7 +79,7 @@ export const ManagerAbsenceList: React.FC = () => {
           </Tr>
         </Thead>
         <Tbody>
-          {absences.filter((a: any) => a.status === 'pending').map((absence: any) => (
+          {absences.map((absence: any) => (
             <Tr key={absence.id} tabIndex={0} aria-label={`Pending absence for ${absence.userName || absence.user?.name || 'User'}`}> 
               <Td>{absence.userName || absence.user?.name || 'User'}</Td>
               <Td>{absence.type}</Td>

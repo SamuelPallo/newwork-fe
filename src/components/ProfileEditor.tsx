@@ -19,11 +19,11 @@ export const ProfileEditor: React.FC = () => {
   // Defensive mapping for form values
   function getFormValues(profile: any) {
     return {
-      first_name: profile?.first_name || profile?.firstName || '',
-      last_name: profile?.last_name || profile?.lastName || '',
+      firstName: profile?.firstName || profile?.first_name || '',
+      lastName: profile?.lastName || profile?.last_name || '',
       email: profile?.email || '',
-      phone: (profile?.sensitive_data?.phone || profile?.sensitiveData?.phone || ''),
-      address: (profile?.sensitive_data?.address || profile?.sensitiveData?.address || ''),
+      phone: (profile?.sensitiveData?.phone || profile?.sensitive_data?.phone || ''),
+      address: (profile?.sensitiveData?.address || profile?.sensitive_data?.address || ''),
     };
   }
 
@@ -38,25 +38,29 @@ export const ProfileEditor: React.FC = () => {
   }, [profile, reset]);
 
   const onSubmit = async (data: any) => {
-    // Prepare payload: merge sensitive_data
+    // Prepare payload: match backend DTOs, only camelCase keys
     const payload = {
-      ...profile,
-      first_name: data.first_name,
-      last_name: data.last_name,
+      id: profile.id,
       email: data.email,
-      sensitive_data: {
-        ...profile.sensitive_data,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      jobTitle: profile.jobTitle ?? profile.job_title ?? '',
+      department: profile.department ?? '',
+      managerId: profile.managerId ?? profile.manager_id ?? '',
+      managerName: profile.managerName ?? '',
+      isActive: profile.isActive ?? profile.active ?? true,
+      hireDate: profile.hireDate ?? profile.hire_date ?? '',
+      role: profile.role === 'USER' ? 'EMPLOYEE' : profile.role,
+      sensitiveData: {
         phone: data.phone,
         address: data.address,
+        salary: profile.sensitiveData?.salary ?? profile.sensitive_data?.salary ?? '',
       },
     };
-    // Try to get token from user, fallback to tokenService
     let token = user?.token;
     if (!token) {
       token = tokenService.getToken();
     }
-    console.log('ProfileEditor PUT token:', token);
-    console.log('ProfileEditor PUT payload:', payload);
     try {
       const res = await fetch(`/api/v1/users/${profile.id}`, {
         method: 'PUT',
@@ -83,11 +87,11 @@ export const ProfileEditor: React.FC = () => {
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormControl mb={4}>
           <FormLabel>First Name</FormLabel>
-          <Input {...register('first_name', { required: true })} />
+          <Input {...register('firstName', { required: true })} />
         </FormControl>
         <FormControl mb={4}>
           <FormLabel>Last Name</FormLabel>
-          <Input {...register('last_name', { required: true })} />
+          <Input {...register('lastName', { required: true })} />
         </FormControl>
         <FormControl mb={4}>
           <FormLabel>Email</FormLabel>
@@ -116,7 +120,7 @@ export const ProfileEditor: React.FC = () => {
         </FormControl>
         <FormControl mb={4} isReadOnly>
           <FormLabel>Role</FormLabel>
-          <Input value={profile?.role || ''} isReadOnly />
+          <Input value={profile?.role === 'USER' ? 'EMPLOYEE' : profile?.role || ''} isReadOnly />
         </FormControl>
         <FormControl mb={4} isReadOnly>
           <FormLabel>Salary</FormLabel>

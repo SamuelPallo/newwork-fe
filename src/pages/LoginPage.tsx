@@ -18,11 +18,7 @@ export const LoginPage: React.FC = () => {
   const token = useAuthStore((state) => state.token);
   const setToken = useAuthStore((state) => state.setToken);
 
-  React.useEffect(() => {
-    if (token) {
-      navigate('/me', { replace: true });
-    }
-  }, [token, navigate]);
+  // Remove automatic redirect to /me on token presence
 
   const refreshAuth = useAuthStore((state) => state.refreshAuth);
   const queryClient = useQueryClient();
@@ -31,6 +27,7 @@ export const LoginPage: React.FC = () => {
       const { accessToken, refreshToken } = await login({ email: data.email, password: data.password });
       await setToken(accessToken);
       refreshAuth();
+      // Force profile refetch before navigating
       await queryClient.refetchQueries({ queryKey: ['me'] });
       navigate('/me', { replace: true });
     } catch (err: any) {

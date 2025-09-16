@@ -21,10 +21,17 @@ import { FeedbackComposer } from './components/FeedbackComposer';
 import { FeedbackList } from './components/FeedbackList';
 import { AbsenceForm } from './components/AbsenceForm';
 import { AbsenceList } from './components/AbsenceList';
+import { ManagerAbsenceList } from './components/ManagerAbsenceList';
 import { TeamDirectory } from './components/TeamDirectory';
+import { UserManagement } from './components/UserManagement';
+import { AddUser } from './components/AddUser';
 import { LoginPage } from './pages/LoginPage';
+import { RoleSelectorDialog } from './components/RoleSelectorDialog';
 import { useAuthStore } from './hooks/useAuthStore';
+import { useAuth } from './hooks/useAuth';
 import { logout as apiLogout } from './api/logout';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token);
@@ -41,10 +48,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App: React.FC = () => {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
-  // Only log once per render
+  const queryClient = useQueryClient();
+  const { user, activeRole, setActiveRole, isManager, isAdmin } = useAuth();
   React.useEffect(() => {
-    console.log('App token:', token);
-  }, [token]);
+    queryClient.invalidateQueries({ queryKey: ['me'] });
+  }, [token, queryClient]);
   const clearToken = useAuthStore((state) => state.clearToken);
 
   const handleLogout = async () => {
@@ -53,10 +61,16 @@ const App: React.FC = () => {
     navigate('/', { replace: true });
   };
 
+  // Show role selection dialog if user has multiple roles and no activeRole selected
+  const showRoleDialog = token && user?.roles && Array.isArray(user.roles) && user.roles.length > 1 && !activeRole;
+
   return (
     <ErrorBoundary>
       <>
-        {token && (
+        {showRoleDialog && (
+          <RoleSelectorDialog roles={user.roles} activeRole={activeRole} setActiveRole={setActiveRole} />
+        )}
+        {token && !showRoleDialog && (
           <>
             <nav className="w-full flex items-center justify-between p-2 bg-gray-100 border-b">
               <div className="flex gap-4">
@@ -67,22 +81,36 @@ const App: React.FC = () => {
                 <Link to="/absence" className="text-blue-600 hover:underline">Request Absence</Link>
                 <Link to="/absences" className="text-blue-600 hover:underline">My Absences</Link>
                 <Link to="/team" className="text-blue-600 hover:underline">Team Directory</Link>
+                {(isManager || isAdmin) && (
+                  <>
+                    <Link to="/user-management" className="text-blue-600 hover:underline">User Management</Link>
+                    <Link to="/add-user" className="text-blue-600 hover:underline">Add User</Link>
+                  </>
+                )}
+                {isManager && (
+                  <Link to="/pending-absences" className="text-blue-600 hover:underline">Pending Absences</Link>
+                )}
               </div>
               <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600">Logout</button>
             </nav>
           </>
         )}
-        <Routes>
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/me" element={<ProtectedRoute><ProfileCard /></ProtectedRoute>} />
-          <Route path="/edit" element={<ProtectedRoute><ProfileEditor /></ProtectedRoute>} />
-          <Route path="/feedback" element={<ProtectedRoute><FeedbackComposer /></ProtectedRoute>} />
-          <Route path="/feedback-list" element={<ProtectedRoute><FeedbackList /></ProtectedRoute>} />
-          <Route path="/absence" element={<ProtectedRoute><AbsenceForm /></ProtectedRoute>} />
-          <Route path="/absences" element={<ProtectedRoute><AbsenceList /></ProtectedRoute>} />
-          <Route path="/team" element={<ProtectedRoute><TeamDirectory /></ProtectedRoute>} />
-          {/* Add more routes as needed */}
-        </Routes>
+        {!showRoleDialog && (
+          <Routes>
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/me" element={<ProtectedRoute><ProfileCard /></ProtectedRoute>} />
+            <Route path="/edit" element={<ProtectedRoute><ProfileEditor /></ProtectedRoute>} />
+            <Route path="/feedback" element={<ProtectedRoute><FeedbackComposer /></ProtectedRoute>} />
+            <Route path="/feedback-list" element={<ProtectedRoute><FeedbackList /></ProtectedRoute>} />
+            <Route path="/absence" element={<ProtectedRoute><AbsenceForm /></ProtectedRoute>} />
+            <Route path="/absences" element={<ProtectedRoute><AbsenceList /></ProtectedRoute>} />
+            <Route path="/team" element={<ProtectedRoute><TeamDirectory /></ProtectedRoute>} />
+            <Route path="/pending-absences" element={<ProtectedRoute><ManagerAbsenceList /></ProtectedRoute>} />
+            <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+            <Route path="/add-user" element={<ProtectedRoute><AddUser /></ProtectedRoute>} />
+            {/* Add more routes as needed */}
+          </Routes>
+        )}
       </>
     </ErrorBoundary>
   );
