@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Input, FormControl, FormLabel, Heading, useToast, Spinner, Alert, AlertIcon } from '@chakra-ui/react';
+import { Box, Button, Input, FormControl, FormLabel, Heading, useToast, Spinner, Alert, AlertIcon, Checkbox } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { useUser } from '../hooks/useUser';
 import { useAuth } from '../hooks/useAuth';
@@ -24,10 +24,12 @@ export const ProfileEditor: React.FC = () => {
       email: profile?.email || '',
       phone: (profile?.sensitiveData?.phone || profile?.sensitive_data?.phone || ''),
       address: (profile?.sensitiveData?.address || profile?.sensitive_data?.address || ''),
+      hireDate: profile?.hireDate || profile?.hire_date || '',
+      isActive: Boolean(profile?.isActive ?? profile?.active ?? true),
     };
   }
 
-  const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm({
+  const { register, handleSubmit, formState: { isSubmitting }, reset, watch } = useForm({
     defaultValues: getFormValues(profile),
   });
 
@@ -114,17 +116,26 @@ export const ProfileEditor: React.FC = () => {
           <FormLabel>Department</FormLabel>
           <Input value={profile?.department || ''} isReadOnly />
         </FormControl>
-        <FormControl mb={4} isReadOnly>
+        <FormControl mb={4} isReadOnly={!(user?.roles?.includes('ROLE_MANAGER') || user?.roles?.includes('ROLE_ADMIN'))}>
           <FormLabel>Hire Date</FormLabel>
-          <Input value={profile?.hireDate || profile?.hire_date || ''} isReadOnly />
+          {user?.roles?.includes('ROLE_MANAGER') || user?.roles?.includes('ROLE_ADMIN') ? (
+            <Input type="date" defaultValue={profile?.hireDate || profile?.hire_date || ''} {...register('hireDate')} />
+          ) : (
+            <Input value={profile?.hireDate || profile?.hire_date || ''} isReadOnly />
+          )}
         </FormControl>
         <FormControl mb={4} isReadOnly>
           <FormLabel>Role</FormLabel>
-          <Input value={profile?.role === 'USER' ? 'EMPLOYEE' : profile?.role || ''} isReadOnly />
+          <Input value={user?.activeRole || (profile?.role === 'USER' ? 'EMPLOYEE' : profile?.role || '')} isReadOnly />
         </FormControl>
         <FormControl mb={4} isReadOnly>
           <FormLabel>Salary</FormLabel>
           <Input value={profile?.sensitiveData?.salary || profile?.sensitive_data?.salary || ''} isReadOnly />
+        </FormControl>
+        <FormControl mb={4}>
+          <Checkbox {...register('isActive')} isChecked={watch('isActive')} isDisabled>
+            Active
+          </Checkbox>
         </FormControl>
         <Button colorScheme="blue" type="submit" isLoading={isSubmitting} w="full">Save Changes</Button>
       </form>

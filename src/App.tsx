@@ -25,7 +25,10 @@ import { ManagerAbsenceList } from './components/ManagerAbsenceList';
 import { TeamDirectory } from './components/TeamDirectory';
 import { UserManagement } from './components/UserManagement';
 import { AddUser } from './components/AddUser';
+import { CompanyDirectory } from './components/CompanyDirectory';
+import { UserEditor } from './components/UserEditor';
 import { LoginPage } from './pages/LoginPage';
+import { ProfileSwitcher } from './components/ProfileSwitcher';
 import { RoleSelectorDialog } from './components/RoleSelectorDialog';
 import { useAuthStore } from './hooks/useAuthStore';
 import { useAuth } from './hooks/useAuth';
@@ -35,13 +38,12 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token);
-  if (!token) {
-    // Only log if actually redirecting
-    console.log('ProtectedRoute: redirecting to /');
+  const { activeRole, loading } = useAuth();
+  if (loading) return <div style={{ padding: 32, textAlign: 'center' }}>Loading...</div>;
+  if (!token || !activeRole) {
+    // Block access until token and activeRole are set
     return <Navigate to="/" replace />;
   }
-  // Only log if actually rendering children
-  console.log('ProtectedRoute: rendering children');
   return <>{children}</>;
 };
 
@@ -49,7 +51,9 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
-  const { user, activeRole, setActiveRole, isManager, isAdmin } = useAuth();
+  const { user, activeRole, setActiveRole } = useAuth();
+  const isManagerProfile = activeRole === 'ROLE_MANAGER';
+  const isAdminProfile = activeRole === 'ROLE_ADMIN';
   React.useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ['me'] });
   }, [token, queryClient]);
@@ -73,23 +77,29 @@ const App: React.FC = () => {
         {token && !showRoleDialog && (
           <>
             <nav className="w-full flex items-center justify-between p-2 bg-gray-100 border-b">
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
                 <Link to="/me" className="text-blue-600 hover:underline">Profile</Link>
-                <Link to="/edit" className="text-blue-600 hover:underline">Edit Profile</Link>
-                <Link to="/feedback" className="text-blue-600 hover:underline">Leave Feedback</Link>
+                {!isManagerProfile && !isAdminProfile && (
+                  <>
+                    <Link to="/edit" className="text-blue-600 hover:underline">Edit Profile</Link>
+                    <Link to="/feedback" className="text-blue-600 hover:underline">Leave Feedback</Link>
+                    <Link to="/absence" className="text-blue-600 hover:underline">Request Absence</Link>
+                    <Link to="/absences" className="text-blue-600 hover:underline">My Absences</Link>
+                  </>
+                )}
                 <Link to="/feedback-list" className="text-blue-600 hover:underline">Feedback List</Link>
-                <Link to="/absence" className="text-blue-600 hover:underline">Request Absence</Link>
-                <Link to="/absences" className="text-blue-600 hover:underline">My Absences</Link>
-                <Link to="/team" className="text-blue-600 hover:underline">Team Directory</Link>
-                {(isManager || isAdmin) && (
+                <Link to="/company-directory" className="text-blue-600 hover:underline">Company Directory</Link>
+                {(isManagerProfile || isAdminProfile) && (
                   <>
                     <Link to="/user-management" className="text-blue-600 hover:underline">User Management</Link>
                     <Link to="/add-user" className="text-blue-600 hover:underline">Add User</Link>
                   </>
                 )}
-                {isManager && (
+                {isManagerProfile && (
                   <Link to="/pending-absences" className="text-blue-600 hover:underline">Pending Absences</Link>
                 )}
+                {/* Profile switcher dropdown */}
+                <ProfileSwitcher roles={user?.roles || []} activeRole={activeRole} setActiveRole={setActiveRole} />
               </div>
               <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600">Logout</button>
             </nav>
@@ -97,18 +107,26 @@ const App: React.FC = () => {
         )}
         {!showRoleDialog && (
           <Routes>
-            <Route path="/" element={<LoginPage />} />
+            <Route path="/" element={token && activeRole ? <Navigate to="/me" replace /> : <LoginPage />} />
             <Route path="/me" element={<ProtectedRoute><ProfileCard /></ProtectedRoute>} />
             <Route path="/edit" element={<ProtectedRoute><ProfileEditor /></ProtectedRoute>} />
             <Route path="/feedback" element={<ProtectedRoute><FeedbackComposer /></ProtectedRoute>} />
             <Route path="/feedback-list" element={<ProtectedRoute><FeedbackList /></ProtectedRoute>} />
             <Route path="/absence" element={<ProtectedRoute><AbsenceForm /></ProtectedRoute>} />
             <Route path="/absences" element={<ProtectedRoute><AbsenceList /></ProtectedRoute>} />
-            <Route path="/team" element={<ProtectedRoute><TeamDirectory /></ProtectedRoute>} />
+            {/* Team Directory route removed */}
             <Route path="/pending-absences" element={<ProtectedRoute><ManagerAbsenceList /></ProtectedRoute>} />
             <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
             <Route path="/add-user" element={<ProtectedRoute><AddUser /></ProtectedRoute>} />
-            {/* Add more routes as needed */}
+            <Route path="/edit-user/:id" element={
+              <ProtectedRoute>
+                {(isManagerProfile || isAdminProfile)
+                  ? <UserEditor />
+                  : <div style={{padding:32, color:'red'}}>Access denied: Only managers or admins can edit users.</div>
+                }
+              </ProtectedRoute>
+            } />
+            <Route path="/company-directory" element={<ProtectedRoute><CompanyDirectory /></ProtectedRoute>} />
           </Routes>
         )}
       </>

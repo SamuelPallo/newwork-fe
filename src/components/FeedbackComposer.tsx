@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Box, Textarea, Button, Select, Spinner, useToast } from '@chakra-ui/react';
 import { useAuth } from '../hooks/useAuth';
-import { useFeedback } from '../hooks/useFeedback';
+import { useAddFeedback } from '../hooks/useAddFeedback';
+
 
 export const FeedbackComposer: React.FC = () => {
   const { user } = useAuth();
@@ -10,7 +11,8 @@ export const FeedbackComposer: React.FC = () => {
   const [polish, setPolish] = useState(false);
   const [model, setModel] = useState('default');
   const toast = useToast();
-  const { addFeedback, adding } = useFeedback(user?.sub);
+  const { mutate: addFeedback, status } = useAddFeedback(user?.sub);
+  const adding = status === 'loading';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,12 +1,41 @@
-export async function addUser(data: { name: string; email: string; department: string; roles: string; password: string }) {
+export async function addUser(data: {
+  name: string;
+  email: string;
+  department: string;
+  roles: string;
+  password: string;
+  phone?: string;
+  address?: string;
+  jobTitle?: string;
+  hireDate?: string;
+  salary?: string | number;
+}) {
   const token = tokenService.getToken();
+  // Prepare payload for backend
+  const payload: any = {
+    name: data.name,
+    email: data.email,
+    department: data.department,
+    roles: data.roles,
+    password: data.password,
+    jobTitle: data.jobTitle,
+    hireDate: data.hireDate,
+  };
+  // Add sensitiveData if present
+  if (data.phone || data.address || data.salary) {
+    payload.sensitiveData = {
+      phone: data.phone || '',
+      address: data.address || '',
+      salary: data.salary || '',
+    };
+  }
   const res = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error('Failed to add user');
   return res.json();
@@ -28,7 +57,13 @@ export async function getUsers(department?: string, managerId?: string, managerE
     },
   });
   if (!res.ok) throw new Error('Failed to fetch users');
-  return res.json();
+  const text = await res.text();
+  if (!text) return [];
+  try {
+    return JSON.parse(text);
+  } catch {
+    return [];
+  }
 }
 
 export async function deleteUser(userId: string) {
@@ -40,5 +75,11 @@ export async function deleteUser(userId: string) {
     },
   });
   if (!res.ok) throw new Error('Failed to delete user');
-  return res.json();
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
 }

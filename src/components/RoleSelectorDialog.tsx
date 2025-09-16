@@ -13,13 +13,19 @@ export const RoleSelectorDialog: React.FC<RoleSelectorDialogProps> = ({ roles, a
         <h2 className="text-lg font-bold mb-4">Select your role</h2>
         <select
           className="w-full mb-4 p-2 border rounded"
-          onChange={e => setActiveRole(e.target.value)}
+          onChange={e => {
+            const val = e.target.value;
+            setActiveRole(val.startsWith('ROLE_') ? val : `ROLE_${val}`);
+          }}
           defaultValue=""
         >
           <option value="" disabled>Select role...</option>
-          {roles.map((role: string) => (
-            <option key={role} value={role}>{role.replace('ROLE_', '')}</option>
-          ))}
+          {roles.map((role: string) => {
+            const value = role.startsWith('ROLE_') ? role : `ROLE_${role}`;
+            return (
+              <option key={role} value={value}>{role.replace('ROLE_', '')}</option>
+            );
+          })}
         </select>
         <button
           className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
