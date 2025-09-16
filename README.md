@@ -38,8 +38,33 @@ src/
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v18+ recommended)
-- npm (v9+ recommended)
+
+
+### Backend Connection
+
+This frontend expects a backend API (Spring Boot, Node, etc.) running locally or remotely. By default, API requests to `/api` are proxied to `http://localhost:8080` using Vite's dev server proxy.
+
+**To change the backend URL:**
+Edit `vite.config.ts`:
+```ts
+// vite.config.ts
+server: {
+  proxy: {
+   '/api': 'http://localhost:8081', // Change to your backend URL
+  },
+},
+```
+
+**Environment variables:**
+Create a `.env` file to override Vite defaults if needed:
+```
+VITE_API_URL=http://localhost:8081
+```
+
+**Troubleshooting:**
+- If you see blank pages after login, check backend connection and JWT validity.
+- For CORS issues, ensure your backend allows requests from the frontend origin.
+- If you change backend endpoints, update the proxy and API paths in the frontend code.
 
 ### Setup
 1. **Install dependencies:**
