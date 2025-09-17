@@ -13,6 +13,9 @@ Open [http://localhost:3000](http://localhost:3000)
 **Docker:**
 ```powershell
 docker build -t newwork-fe .
+# If you start the backend in Docker, run both containers with --network <network-name> (e.g. newwork)
+# Example: docker run -p 3000:3000 --network newwork newwork-fe
+# If you connect to a backend running locally, just run:
 docker run -p 3000:3000 newwork-fe
 ```
 Open [http://localhost:3000](http://localhost:3000)
@@ -33,7 +36,10 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Backend Connection
 
-API requests to `/api` are proxied to your backend (default: `http://localhost:8081`). Change this in `vite.config.ts` if needed.
+API requests are routed as follows:
+- **Docker:** Frontend uses `http://newwork-backend:8081` for API calls (if backend is running in Docker on the same `newwork` network)
+- **Local development:** Frontend uses `http://localhost:8081` for API calls
+If you run the backend in Docker, ensure it is started with the network name `newwork` and container name `newwork-backend`. Both containers must be on the same network for connectivity.
 
 ## Improvements with More Time
 
