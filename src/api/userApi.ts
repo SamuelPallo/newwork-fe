@@ -1,34 +1,46 @@
+export async function patchUser(userId: string, data: any, tokenOverride?: string | null) {
+  const token = tokenOverride ?? tokenService.getToken();
+  const res = await fetch(`${API_URL}/${userId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update user');
+  return res.json();
+}
 export async function addUser(data: {
-  name: string;
   email: string;
-  department: string;
-  roles: string;
   password: string;
+  firstName: string;
+  lastName: string;
+  roles: string[];
+  jobTitle?: string;
+  department?: string;
+  hireDate?: string;
   phone?: string;
   address?: string;
-  jobTitle?: string;
-  hireDate?: string;
-  salary?: string | number;
+  salary?: number;
+  managerId?: string;
 }) {
   const token = tokenService.getToken();
   // Prepare payload for backend
   const payload: any = {
-    name: data.name,
     email: data.email,
-    department: data.department,
-    roles: data.roles,
     password: data.password,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    roles: data.roles,
     jobTitle: data.jobTitle,
+    department: data.department,
     hireDate: data.hireDate,
+    phone: data.phone ?? '',
+    address: data.address ?? '',
+    salary: data.salary ?? null,
+    managerId: data.managerId ?? '',
   };
-  // Add sensitiveData if present
-  if (data.phone || data.address || data.salary) {
-    payload.sensitiveData = {
-      phone: data.phone || '',
-      address: data.address || '',
-      salary: data.salary || '',
-    };
-  }
   const res = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: {
@@ -44,17 +56,21 @@ import { tokenService } from '../services/tokenService';
 
 const API_URL = '/api/v1/users';
 
-export async function getUsers(department?: string, managerId?: string, managerEmail?: string) {
-  const token = tokenService.getToken();
+export async function getUsers(
+  token: string | null,
+  department?: string,
+  managerId?: string,
+  managerEmail?: string,
+  role?: string
+) {
   const params = new URLSearchParams();
   if (department) params.append('department', department);
   if (managerId) params.append('managerId', managerId);
   if (managerEmail) params.append('managerEmail', managerEmail);
+  if (role) params.append('role', role);
   const url = params.toString() ? `${API_URL}?${params}` : API_URL;
   const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error('Failed to fetch users');
   const text = await res.text();

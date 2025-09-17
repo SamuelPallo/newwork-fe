@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +14,7 @@ import {
 
 
 export const UserManagement: React.FC = () => {
-  const { user, activeRole, loading } = useAuth();
+  const { user, activeRole, loading, token } = useAuth();
   const isManagerProfile = activeRole === 'ROLE_MANAGER';
   const isAdminProfile = activeRole === 'ROLE_ADMIN';
   // Only enable query if all required state is present
@@ -26,12 +25,12 @@ export const UserManagement: React.FC = () => {
       if (isManagerProfile && !isAdminProfile) {
         // Prefer UUID (sub) for managerId, fallback to email if not available
         if (user?.sub && /^[0-9a-fA-F-]{36}$/.test(user.sub)) {
-          return getUsers(undefined, user.sub);
+          return getUsers(token, undefined, user.sub);
         } else if (user?.sub && user.sub.includes('@')) {
-          return getUsers(undefined, undefined, user.sub);
+          return getUsers(token, undefined, undefined, user.sub);
         }
       }
-      return getUsers();
+      return getUsers(token);
     },
     enabled: queryEnabled,
   });
@@ -113,7 +112,9 @@ export const UserManagement: React.FC = () => {
                 <Td>{Array.isArray(u.roles) ? u.roles.join(', ') : u.roles}</Td>
                 <Td>{u.department}</Td>
                 <Td>
+                  <Button size="xs" colorScheme="teal" as="a" href={`/view-user/${u.id}`}>View</Button>{' '}
                   <Button size="xs" colorScheme="blue" as="a" href={`/edit-user/${u.id}`}>Edit</Button>{' '}
+                  <Button size="xs" colorScheme="yellow" as="a" href={`/change-manager/${u.id}`}>Change Manager</Button>{' '}
                   <Button size="xs" colorScheme="red" onClick={() => openDeleteDialog(u)}>Delete</Button>
                 </Td>
               </Tr>

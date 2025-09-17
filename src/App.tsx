@@ -1,3 +1,5 @@
+import { UserProfileView } from './components/UserProfileView';
+import { ChangeManager } from './components/ChangeManager';
 import React from 'react';
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: any) {
@@ -22,7 +24,6 @@ import { FeedbackList } from './components/FeedbackList';
 import { AbsenceForm } from './components/AbsenceForm';
 import { AbsenceList } from './components/AbsenceList';
 import { ManagerAbsenceList } from './components/ManagerAbsenceList';
-import { TeamDirectory } from './components/TeamDirectory';
 import { UserManagement } from './components/UserManagement';
 import { AddUser } from './components/AddUser';
 import { CompanyDirectory } from './components/CompanyDirectory';
@@ -59,6 +60,9 @@ const App: React.FC = () => {
   }, [token, queryClient]);
   const clearToken = useAuthStore((state) => state.clearToken);
 
+  // Check for no roles after login (must be after user and token are declared)
+  const showNoRolesDialog = token && user && (!user.roles || (Array.isArray(user.roles) && user.roles.length === 0));
+
   const handleLogout = async () => {
     await apiLogout();
     clearToken();
@@ -71,63 +75,102 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <>
-        {showRoleDialog && (
-          <RoleSelectorDialog roles={user.roles} activeRole={activeRole} setActiveRole={setActiveRole} />
+        {showNoRolesDialog && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000
+          }}>
+            <div style={{ background: 'white', padding: 32, borderRadius: 8, minWidth: 320, textAlign: 'center', boxShadow: '0 2px 16px rgba(0,0,0,0.2)' }}>
+              <div style={{ fontSize: 18, marginBottom: 16 }}>You need at least one assigned role to continue.</div>
+              <button onClick={handleLogout} className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Logout</button>
+            </div>
+          </div>
         )}
-        {token && !showRoleDialog && (
+        {!showNoRolesDialog && (
           <>
-            <nav className="w-full flex items-center justify-between p-2 bg-gray-100 border-b">
-              <div className="flex gap-4 items-center">
-                <Link to="/me" className="text-blue-600 hover:underline">Profile</Link>
-                {!isManagerProfile && !isAdminProfile && (
-                  <>
-                    <Link to="/edit" className="text-blue-600 hover:underline">Edit Profile</Link>
+            {showRoleDialog && (
+              <RoleSelectorDialog roles={user.roles} activeRole={activeRole} setActiveRole={setActiveRole} />
+            )}
+            {token && !showRoleDialog && (
+              <>
+                <nav className="w-full flex items-center justify-between p-2 bg-gray-100 border-b">
+                  <div className="flex gap-4 items-center">
+                    <Link to="/me" className="text-blue-600 hover:underline">Profile</Link>
                     <Link to="/feedback" className="text-blue-600 hover:underline">Leave Feedback</Link>
-                    <Link to="/absence" className="text-blue-600 hover:underline">Request Absence</Link>
-                    <Link to="/absences" className="text-blue-600 hover:underline">My Absences</Link>
-                  </>
-                )}
-                <Link to="/feedback-list" className="text-blue-600 hover:underline">Feedback List</Link>
-                <Link to="/company-directory" className="text-blue-600 hover:underline">Company Directory</Link>
-                {(isManagerProfile || isAdminProfile) && (
-                  <>
-                    <Link to="/user-management" className="text-blue-600 hover:underline">User Management</Link>
-                    <Link to="/add-user" className="text-blue-600 hover:underline">Add User</Link>
-                  </>
-                )}
-                {isManagerProfile && (
-                  <Link to="/pending-absences" className="text-blue-600 hover:underline">Pending Absences</Link>
-                )}
-                {/* Profile switcher dropdown */}
-                <ProfileSwitcher roles={user?.roles || []} activeRole={activeRole} setActiveRole={setActiveRole} />
-              </div>
-              <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600">Logout</button>
-            </nav>
+                    {!isManagerProfile && !isAdminProfile && (
+                      <>
+                        <Link to="/edit" className="text-blue-600 hover:underline">Edit Profile</Link>
+                        <Link to="/absence" className="text-blue-600 hover:underline">Request Absence</Link>
+                        <Link to="/absences" className="text-blue-600 hover:underline">My Absences</Link>
+                      </>
+                    )}
+                    <Link to="/feedback-list" className="text-blue-600 hover:underline">Feedback List</Link>
+                    <Link to="/company-directory" className="text-blue-600 hover:underline">Company Directory</Link>
+                    {(isManagerProfile || isAdminProfile) && (
+                      <>
+                        <Link to="/user-management" className="text-blue-600 hover:underline">User Management</Link>
+                        <Link to="/add-user" className="text-blue-600 hover:underline">Add User</Link>
+                      </>
+                    )}
+                    {isManagerProfile && (
+                      <Link to="/pending-absences" className="text-blue-600 hover:underline">Pending Absences</Link>
+                    )}
+                    {/* Profile switcher dropdown */}
+                    <ProfileSwitcher roles={user?.roles || []} activeRole={activeRole} setActiveRole={setActiveRole} />
+                  </div>
+                  <button onClick={handleLogout} className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600">Logout</button>
+                </nav>
+              </>
+            )}
+            {!showRoleDialog && (
+              <Routes>
+                <Route path="/" element={token && activeRole ? <Navigate to="/me" replace /> : <LoginPage />} />
+                <Route path="/me" element={<ProtectedRoute><ProfileCard /></ProtectedRoute>} />
+                <Route path="/edit" element={<ProtectedRoute><ProfileEditor /></ProtectedRoute>} />
+                <Route path="/feedback" element={<ProtectedRoute><FeedbackComposer /></ProtectedRoute>} />
+                <Route path="/feedback-list" element={<ProtectedRoute><FeedbackList /></ProtectedRoute>} />
+                <Route path="/absence" element={<ProtectedRoute><AbsenceForm /></ProtectedRoute>} />
+                <Route path="/absences" element={<ProtectedRoute><AbsenceList /></ProtectedRoute>} />
+                {/* Team Directory route removed */}
+                <Route path="/pending-absences" element={<ProtectedRoute><ManagerAbsenceList /></ProtectedRoute>} />
+                <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+                <Route path="/add-user" element={<ProtectedRoute><AddUser /></ProtectedRoute>} />
+                <Route path="/edit-user/:id" element={
+                  <ProtectedRoute>
+                    {(isManagerProfile || isAdminProfile)
+                      ? <UserEditor />
+                      : <div style={{padding:32, color:'red'}}>Access denied: Only managers or admins can edit users.</div>
+                    }
+                  </ProtectedRoute>
+                } />
+                <Route path="/company-directory" element={<ProtectedRoute><CompanyDirectory /></ProtectedRoute>} />
+                <Route path="/view-user/:id" element={
+                  <ProtectedRoute>
+                    {(isManagerProfile || isAdminProfile)
+                      ? <UserProfileView />
+                      : <div style={{padding:32, color:'red'}}>Access denied: Only managers or admins can view user profiles.</div>
+                    }
+                  </ProtectedRoute>
+                } />
+                <Route path="/change-manager/:id" element={
+                  <ProtectedRoute>
+                    {(isManagerProfile || isAdminProfile)
+                      ? <ChangeManager />
+                      : <div style={{padding:32, color:'red'}}>Access denied: Only managers or admins can change managers.</div>
+                    }
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            )}
           </>
-        )}
-        {!showRoleDialog && (
-          <Routes>
-            <Route path="/" element={token && activeRole ? <Navigate to="/me" replace /> : <LoginPage />} />
-            <Route path="/me" element={<ProtectedRoute><ProfileCard /></ProtectedRoute>} />
-            <Route path="/edit" element={<ProtectedRoute><ProfileEditor /></ProtectedRoute>} />
-            <Route path="/feedback" element={<ProtectedRoute><FeedbackComposer /></ProtectedRoute>} />
-            <Route path="/feedback-list" element={<ProtectedRoute><FeedbackList /></ProtectedRoute>} />
-            <Route path="/absence" element={<ProtectedRoute><AbsenceForm /></ProtectedRoute>} />
-            <Route path="/absences" element={<ProtectedRoute><AbsenceList /></ProtectedRoute>} />
-            {/* Team Directory route removed */}
-            <Route path="/pending-absences" element={<ProtectedRoute><ManagerAbsenceList /></ProtectedRoute>} />
-            <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
-            <Route path="/add-user" element={<ProtectedRoute><AddUser /></ProtectedRoute>} />
-            <Route path="/edit-user/:id" element={
-              <ProtectedRoute>
-                {(isManagerProfile || isAdminProfile)
-                  ? <UserEditor />
-                  : <div style={{padding:32, color:'red'}}>Access denied: Only managers or admins can edit users.</div>
-                }
-              </ProtectedRoute>
-            } />
-            <Route path="/company-directory" element={<ProtectedRoute><CompanyDirectory /></ProtectedRoute>} />
-          </Routes>
         )}
       </>
     </ErrorBoundary>

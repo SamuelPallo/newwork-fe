@@ -1,4 +1,4 @@
-import React from 'react';
+  import React from 'react';
 import { Box, Button, Input, FormControl, FormLabel, Heading, useToast, Spinner, Alert, AlertIcon, Checkbox } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -41,7 +41,7 @@ export const UserEditor: React.FC = () => {
       hireDate: user?.hireDate || user?.hire_date || '',
       roles: Array.isArray(user?.roles) ? user.roles : user?.roles ? [user.roles] : ['ROLE_EMPLOYEE'],
       salary: user?.sensitiveData?.salary || user?.salary || '',
-      isActive: user?.isActive ?? true,
+      isActive: user?.active ?? true,
     };
   }
 
@@ -89,19 +89,19 @@ export const UserEditor: React.FC = () => {
       if (!authToken) {
         throw new Error('Authentication token missing. Please log in again.');
       }
-      // Prepare payload
+      // Map roles to remove 'ROLE_' prefix
+      const mappedRoles = Array.isArray(data.roles) ? data.roles.map((r: string) => r.replace(/^ROLE_/, '')) : [];
+      // Prepare payload (flat, no sensitiveData)
       const payload: any = {
         ...data,
-        roles: data.roles,
-        isActive: data.isActive,
-      };
-      payload.sensitiveData = {
+        roles: mappedRoles,
+        active: data.isActive,
         phone: data.phone || '',
         address: data.address || '',
         salary: data.salary || '',
       };
       const res = await fetch(`/api/v1/users/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`,
@@ -212,7 +212,7 @@ export const UserEditor: React.FC = () => {
           <Input type="number" step="any" {...register('salary', { valueAsNumber: true })} />
         </FormControl>
         <FormControl mb={4}>
-          <Checkbox {...register('isActive')} isChecked={isActive} onChange={e => setValue('isActive', e.target.checked)}>
+          <Checkbox {...register('isActive')} isChecked={!!isActive} onChange={e => setValue('isActive', e.target.checked)}>
             Active
           </Checkbox>
         </FormControl>

@@ -4,7 +4,7 @@ import { tokenService } from '../services/tokenService';
 
 async function fetchProfile() {
   const token = tokenService.getToken();
-  console.log('fetchProfile: token', token);
+  // ...removed log containing token...
   const res = await fetch('/api/v1/users/me', {
     headers: { Authorization: `Bearer ${token}` },
   });

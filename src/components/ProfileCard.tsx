@@ -1,4 +1,4 @@
-
+import { getHighestRole } from '../utils';
 import React, { useState, useCallback } from 'react';
 import { Box, Spinner, Text, Heading, Alert, AlertIcon, Input, Button, useToast, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@chakra-ui/react';
 import { useUser } from '../hooks/useUser';
@@ -101,26 +101,22 @@ export const ProfileCard: React.FC = () => {
 
   // Role-aware: show sensitive fields only to self or higher role
   const isSelf = user && profile && user.id === profile.id;
-  const canSeeSensitive = isSelf || (user && user.role && user.role !== 'USER');
 
   return (
     <Box className="profile-card" p={6} bg="white" rounded="md" shadow="md" maxW="md" mx="auto">
       <Heading size="md" mb={2}>{profile.first_name} {profile.last_name}</Heading>
+      <Text mb={1}><b>Name:</b> {(profile.firstName || profile.first_name || '') + ' ' + (profile.lastName || profile.last_name || '')}</Text>
       <Text mb={1}><b>Email:</b> {profile.email}</Text>
       <Text mb={1}><b>Job Title:</b> {profile.jobTitle || profile.job_title}</Text>
       <Text mb={1}><b>Department:</b> {profile.department}</Text>
-      <Text mb={1}><b>Manager:</b> {profile.manager?.firstName || profile.manager?.first_name || 'None'}</Text>
+      <Text mb={1}><b>Manager:</b> {profile.managerName ?? 'None'}</Text>
       <Text mb={1}><b>Active:</b> {profile.isActive ? 'Yes' : 'No'}</Text>
       <Text mb={1}><b>Hire Date:</b> {profile.hireDate || profile.hire_date}</Text>
-      <Text mb={1}><b>Role:</b> {profile.role}</Text>
-      {canSeeSensitive && (
-        <>
-          <Text mt={2} fontWeight="bold">Sensitive Data</Text>
-          <Text mb={1}><b>Phone:</b> {profile.sensitiveData?.phone || profile.sensitive_data?.phone || '-'}</Text>
-          <Text mb={1}><b>Address:</b> {profile.sensitiveData?.address || profile.sensitive_data?.address || '-'}</Text>
-          <Text mb={1}><b>Salary:</b> {profile.sensitiveData?.salary || profile.sensitive_data?.salary || '-'}</Text>
-        </>
-      )}
+      <Text mb={1}><b>Role:</b> {getHighestRole(profile.roles)}</Text>
+      <Text mt={2} fontWeight="bold">Sensitive Data</Text>
+      <Text mb={1}><b>Phone:</b> {profile.sensitiveData?.phone || profile.sensitive_data?.phone || '-'}</Text>
+      <Text mb={1}><b>Address:</b> {profile.sensitiveData?.address || profile.sensitive_data?.address || '-'}</Text>
+      <Text mb={1}><b>Salary:</b> {profile.sensitiveData?.salary || profile.sensitive_data?.salary || '-'}</Text>
       {/* Optionally show subordinates or other info here */}
     </Box>
   );

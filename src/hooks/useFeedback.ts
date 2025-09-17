@@ -40,7 +40,7 @@ export const useFeedback = (userId: string | undefined, token?: string) => {
   const addFeedbackMutation = useMutation({
     mutationFn: postFeedbackWithToken,
     onMutate: async (newFeedback) => {
-      await queryClient.cancelQueries(['feedback', userId]);
+      await queryClient.cancelQueries({ queryKey: ['feedback', userId] });
       const previous = queryClient.getQueryData(['feedback', userId]);
       queryClient.setQueryData(['feedback', userId], (old: any = []) => [
         { ...newFeedback, optimistic: true },
@@ -52,7 +52,7 @@ export const useFeedback = (userId: string | undefined, token?: string) => {
       queryClient.setQueryData(['feedback', userId], context?.previous);
     },
     onSettled: () => {
-      queryClient.invalidateQueries(['feedback', userId]);
+      queryClient.invalidateQueries({ queryKey: ['feedback', userId] });
     },
   });
   return {

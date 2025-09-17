@@ -33,8 +33,14 @@ export const useAuth = () => {
       setToken(t);
       if (t) {
         const decoded = parseJwt(t);
+        console.log('Decoded JWT:', decoded);
         setUser(decoded);
-        setUserId(decoded?.userId === null ? undefined : typeof decoded?.userId === 'string' ? decoded.userId : undefined);
+        // Set userId from userId, id, or sub (first available string)
+        let uid: string | undefined = undefined;
+        if (typeof decoded?.userId === 'string') uid = decoded.userId;
+        else if (typeof decoded?.id === 'string') uid = decoded.id;
+        else if (typeof decoded?.sub === 'string') uid = decoded.sub;
+        setUserId(uid);
         const storedRole = localStorage.getItem('activeRole');
         if (decoded?.roles) {
           if (storedRole && (Array.isArray(decoded.roles) ? decoded.roles.includes(storedRole) : decoded.roles === storedRole)) {

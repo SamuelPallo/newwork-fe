@@ -1,12 +1,36 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useMutation } from '@tanstack/react-query';
-import { addUser } from '../api/userApi';
+import { addUser, getUsers } from '../api/userApi';
 import { Box, Input, Button, Alert, AlertIcon, FormLabel, Select, Checkbox } from '@chakra-ui/react';
 import { RoleInput } from './RoleInput';
 import { useNavigate } from 'react-router-dom';
 
 export const AddUser: React.FC = () => {
+  // Restrict hire date to today or future
+  const today = new Date().toISOString().split('T')[0];
+  const [managers, setManagers] = React.useState<any[]>([]);
+  const [managerId, setManagerId] = React.useState<string>('');
+  const { token, activeRole, userId } = useAuth();
+  // Fetch managers for selection
+  React.useEffect(() => {
+    async function fetchManagers() {
+      if (!token) return;
+      try {
+        const mgrs = await getUsers(token, undefined, undefined, undefined, 'MANAGER');
+        setManagers(mgrs);
+        // Default: if current user is manager, select self, else first manager
+        if (activeRole === 'ROLE_MANAGER' && mgrs.some((m: any) => m.id === userId)) {
+          setManagerId(userId ?? '');
+        } else if (mgrs.length > 0) {
+          setManagerId(mgrs[0].id);
+        }
+      } catch {
+        setManagers([]);
+      }
+    }
+    fetchManagers();
+  }, [token, activeRole, userId]);
   // Only one set of handlers
   const addRole = (role: string) => {
     if (!form.roles.includes(role)) {
@@ -18,7 +42,6 @@ export const AddUser: React.FC = () => {
       setForm({ ...form, roles: form.roles.filter((r: string) => r !== role) });
     }
   };
-  const { token, activeRole } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = React.useState<AddUserForm>({
     firstName: '',
@@ -52,24 +75,24 @@ export const AddUser: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: (form: AddUserForm) => {
+      // Map roles to remove 'ROLE_' prefix
+      const mappedRoles = form.roles.map(r => r.replace(/^ROLE_/, ''));
       // Map form fields to API payload, ensure salary is a number
       const payload: any = {
-        name: `${form.firstName} ${form.lastName}`.trim(),
+        firstName: form.firstName,
+        lastName: form.lastName,
         email: form.email,
         department: form.department,
-        roles: form.roles,
+        roles: mappedRoles,
         password: form.password,
         jobTitle: form.jobTitle,
         hireDate: form.hireDate,
-        isActive: form.isActive,
+        active: form.isActive,
+        managerId: managerId,
+        phone: form.phone || '',
+        address: form.address || '',
+        salary: form.salary ? Number(form.salary) : null,
       };
-      if (form.phone || form.address || form.salary) {
-        payload.sensitiveData = {
-          phone: form.phone || '',
-          address: form.address || '',
-          salary: form.salary ? Number(form.salary) : '',
-        };
-      }
       return addUser(payload);
     },
     onError: (err: any) => setError(err?.message || 'Failed to add user'),
@@ -83,7 +106,7 @@ export const AddUser: React.FC = () => {
         jobTitle: '',
         department: '',
         hireDate: '',
-        roles: ['ROLE_EMPLOYEE'],
+        roles: ['EMPLOYEE'],
         salary: '',
         password: '',
         isActive: true,
@@ -122,6 +145,12 @@ export const AddUser: React.FC = () => {
   return (
     <Box className="w-full max-w-md mx-auto p-4">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <FormLabel>Manager</FormLabel>
+        <Select name="managerId" value={managerId} onChange={e => setManagerId(e.target.value)} required>
+          {managers.map(m => (
+            <option key={m.id} value={m.id}>{m.firstName || m.name || ''} {m.lastName || ''} ({m.email})</option>
+          ))}
+        </Select>
         <FormLabel>First Name</FormLabel>
         <Input name="firstName" value={form.firstName} onChange={handleChange} required />
         <FormLabel>Last Name</FormLabel>
@@ -136,8 +165,8 @@ export const AddUser: React.FC = () => {
         <Input name="jobTitle" value={form.jobTitle} onChange={handleChange} />
         <FormLabel>Department</FormLabel>
         <Input name="department" value={form.department} onChange={handleChange} required />
-        <FormLabel>Hire Date</FormLabel>
-        <Input name="hireDate" value={form.hireDate} onChange={handleChange} type="date" />
+  <FormLabel>Hire Date</FormLabel>
+  <Input name="hireDate" value={form.hireDate} onChange={handleChange} type="date" min={today} />
         <FormLabel>Roles</FormLabel>
         <RoleInput roles={form.roles} activeRole={activeRole ?? 'ROLE_EMPLOYEE'} onAdd={addRole} onRemove={removeRole} />
         <FormLabel>Salary</FormLabel>

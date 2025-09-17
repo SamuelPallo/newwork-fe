@@ -1,33 +1,48 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { tokenService } from '../services/tokenService';
+import { useAuth } from './useAuth';
 import { hfIntegration } from '../services/hfIntegration';
 
-async function postFeedback(userId: string, content: string, polish: boolean, model?: string) {
-  const token = tokenService.getToken();
-  let polished_content = content;
-  if (polish && model) {
-    polished_content = await hfIntegration.polishFeedback(content, model);
-  }
-  const res = await fetch(`/api/v1/users/${userId}/feedback`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ content, polish, polished_content }),
-  });
-  if (!res.ok) throw await res.json().catch(() => ({ message: 'Failed to add feedback' }));
-  return res.json();
+interface FeedbackPayload {
+  content: string;
+  model?: string;
+  targetUserId: string;
 }
 
-export const useAddFeedback = (userId: string) => {
+function useAddFeedbackMutation() {
+  const { userId, token } = useAuth();
+  return async (payload: FeedbackPayload) => {
+    if (!userId || !token) throw new Error('Missing auth user or token');
+    let polished_content = payload.content;
+    if (payload.model && payload.model !== 'default') {
+      polished_content = await hfIntegration.polishFeedback(payload.content, payload.model);
+    }
+    const res = await fetch(`/api/v1/feedback/users/${userId}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        content: payload.content,
+        model: payload.model,
+        targetUserId: payload.targetUserId,
+        polished_content,
+      }),
+    });
+    if (!res.ok) throw await res.json().catch(() => ({ message: 'Failed to add feedback' }));
+    return res.json();
+  };
+}
+
+export const useAddFeedback = () => {
   const queryClient = useQueryClient();
+  const mutationFn = useAddFeedbackMutation();
   return useMutation({
-    mutationFn: async ({ content, polish, model }: { content: string; polish: boolean; model?: string }) =>
-      postFeedback(userId, content, polish, model),
-    onSuccess: () => {
-      // Optionally invalidate feedback list queries if needed
-      queryClient.invalidateQueries(['feedback', userId]);
+    mutationFn,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['feedback', variables.targetUserId] });
     },
   });
 };

@@ -4,7 +4,7 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 
 export const tokenService = {
   getToken: () => {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    return localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem('token');
   },
   setToken: (accessToken: string, refreshToken: string) => {
     localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);

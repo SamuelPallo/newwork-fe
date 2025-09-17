@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getUsers } from '../api/userApi';
+import { getHighestRole } from '../utils';
 import { useAuth } from '../hooks/useAuth';
 import { Box, Table, Thead, Tbody, Tr, Th, Td, Button, Spinner, Alert, AlertIcon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton } from '@chakra-ui/react';
 
@@ -10,6 +11,7 @@ export const CompanyDirectory: React.FC = () => {
   const { data: users, isLoading, error } = useQuery({
     queryKey: ['company-users', filter, user?.sub],
     queryFn: async () => {
+  // ...removed log containing token...
       if (filter === 'team' && user?.sub) {
         // Call /users/team/{email} with token from useAuth, using user.sub (email)
         const res = await fetch(`/api/v1/users/team/${user.sub}`, {
@@ -18,25 +20,10 @@ export const CompanyDirectory: React.FC = () => {
         if (!res.ok) throw new Error('Failed to fetch team');
         return res.json();
       }
-      return getUsers();
+      return getUsers(token);
     },
     enabled: !!user,
   });
-  // Helper to get most significant role
-  function getHighestRole(roles: any) {
-    if (Array.isArray(roles)) {
-      if (roles.includes('ROLE_ADMIN')) return 'Admin';
-      if (roles.includes('ROLE_MANAGER')) return 'Manager';
-      if (roles.includes('ROLE_EMPLOYEE')) return 'Employee';
-    }
-    if (typeof roles === 'string') {
-      if (roles === 'ROLE_ADMIN') return 'Admin';
-      if (roles === 'ROLE_MANAGER') return 'Manager';
-      if (roles === 'ROLE_EMPLOYEE') return 'Employee';
-      return roles;
-    }
-    return '';
-  }
   const [selectedUser, setSelectedUser] = React.useState<any>(null);
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -96,10 +83,10 @@ export const CompanyDirectory: React.FC = () => {
                 <div><b>Name:</b> {`${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim()}</div>
                 <div><b>Email:</b> {selectedUser.email}</div>
                 <div><b>Department:</b> {selectedUser.department}</div>
+                <div><b>Manager:</b> {selectedUser.managerName ?? 'None'}</div>
                 <div><b>Job Title:</b> {selectedUser.jobTitle || selectedUser.job_title || ''}</div>
                 <div><b>Hire Date:</b> {selectedUser.hireDate || selectedUser.hire_date || ''}</div>
                 <div><b>Role:</b> {getHighestRole(selectedUser.roles)}</div>
-                {/* No sensitive data shown */}
               </Box>
             )}
           </ModalBody>

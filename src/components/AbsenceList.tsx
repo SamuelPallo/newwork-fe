@@ -1,4 +1,3 @@
-
 import { useAbsence } from '../hooks/useAbsence';
 import { useAuth } from '../hooks/useAuth';
 import { Box, Spinner, Alert, AlertIcon, Table, Thead, Tbody, Tr, Th, Td, Badge } from '@chakra-ui/react';

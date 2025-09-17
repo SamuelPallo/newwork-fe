@@ -1,3 +1,4 @@
+import { getHighestRole } from '../utils';
 import React from 'react';
 import { Box, Button, Input, FormControl, FormLabel, Heading, useToast, Spinner, Alert, AlertIcon, Checkbox } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
@@ -64,13 +65,23 @@ export const ProfileEditor: React.FC = () => {
       token = tokenService.getToken();
     }
     try {
+      // Flatten payload (no sensitiveData)
+      const flatPayload = {
+        ...payload,
+        phone: payload.sensitiveData?.phone || '',
+        address: payload.sensitiveData?.address || '',
+        salary: payload.sensitiveData?.salary || '',
+      };
+      if ('sensitiveData' in flatPayload) {
+        delete (flatPayload as any).sensitiveData;
+      }
       const res = await fetch(`/api/v1/users/${profile.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(flatPayload),
       });
       if (!res.ok) throw new Error('Failed to update profile');
       toast({ title: 'Profile updated', status: 'success', duration: 2000 });
@@ -126,7 +137,7 @@ export const ProfileEditor: React.FC = () => {
         </FormControl>
         <FormControl mb={4} isReadOnly>
           <FormLabel>Role</FormLabel>
-          <Input value={user?.activeRole || (profile?.role === 'USER' ? 'EMPLOYEE' : profile?.role || '')} isReadOnly />
+          <Input value={getHighestRole(profile?.roles)} isReadOnly />
         </FormControl>
         <FormControl mb={4} isReadOnly>
           <FormLabel>Salary</FormLabel>
